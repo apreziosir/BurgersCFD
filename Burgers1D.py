@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import style
 import Analytical as an
+import Non_linear as nl
 
 
 # ==============================================================================
@@ -27,6 +28,9 @@ nu = 0.1
 
 # Number of nodes in the domain (changeable for convergence analysis)
 N = 101
+
+# Calculating dx for value between nodes
+dx = (XF - X0) / (N - 1)
 
 # Generating vector of nodes
 xn = np.linspace(X0, XF, N)
