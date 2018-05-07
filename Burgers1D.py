@@ -21,6 +21,8 @@ import Non_linear as nl
 X0 = -1
 XF = 1
 nu = 0.1
+t0 = 0
+tf = 
 
 # ==============================================================================
 # Numerical parameters declaration
@@ -34,6 +36,8 @@ dx = (XF - X0) / (N - 1)
 
 # Generating vector of nodes
 xn = np.linspace(X0, XF, N)
+
+
 
 # ==============================================================================
 # Imposing initial condition as given in the problem
