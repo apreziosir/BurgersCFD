@@ -19,7 +19,7 @@ nu = 0.01
 u0 = -np.sin(np.pi * x)
 
 dt = 0.01
-nT = 500
+nT = 50
 
 plt.ion()
 plt.figure(1, figsize=(11, 8.5))

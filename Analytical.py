@@ -19,9 +19,9 @@ def Analyt(x, t, nu):
     # The larger the number of points the more precise the integration
     # However, remember that the integrand is infinite and a trascendental 
     # function
-    err = 60                            # Points for integration
-    inf = -2                            # Inferior limit for integral
-    sup = 2                             # Superior limit for integral
+    err = 85                             # Points for integration
+    inf = -1                             # Inferior limit for integral
+    sup = 1                              # Superior limit for integral
     
     # Generating vector of points and weights
     [y, W] = np.polynomial.legendre.leggauss(err)
@@ -56,7 +56,7 @@ def Analyt(x, t, nu):
             
             temp2 = np.exp(np.cos(np.pi * x_y) / (-2 * np.pi * nu))
             
-            temp3 = np.exp(-y1 ** 2 / (4 * nu * t)) * d_eta
+            temp3 = np.exp(y1 ** 2 / (-4 * nu * t)) * d_eta
             
             Int1 += (temp1 * temp2 * temp3 * W[j])
             

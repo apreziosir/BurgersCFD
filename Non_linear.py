@@ -78,9 +78,8 @@ def diff_x(u, dx):
 
 def prim_var(u0, dx, dt):
     
-    ut = 1 - dt * diff_x(u0, dx)
-    u1 = np.multiply(u0, ut)    
-    
+    u1 = np.multiply(u0, 1 - dt * diff_x(u0, dx))
+        
     return u1
 
 # ==============================================================================
@@ -89,6 +88,21 @@ def prim_var(u0, dx, dt):
 
 def div_f(u0, dx, dt):
     
-    u1 = np.zeros(len(u0))
+    ut = np.multiply(u0, u0)
+    u1 = u0 - dt * 0.5 * diff_x(ut, dx)
+    
+    return u1
+
+# ==============================================================================
+# Skew symmetric form
+# ==============================================================================
+
+def Skew_sym(u0, dx, dt):
+    
+    ut1 = np.multiply(u0, diff_x(u0, dx))
+    ut2 = np.multiply(u0, u0)
+    ut3 = 0.5 * diff_x(ut2, dx)
+    
+    u1 = u0 - dt * 0.5 * (ut1 + ut3)
     
     return u1
