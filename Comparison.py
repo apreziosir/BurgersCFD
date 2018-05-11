@@ -9,7 +9,9 @@ CFD - Pontificia Universidad Javeriana
 
 
 # Importing the functions that calculate with different discretizations
-from Burgers1D_f import Burgers_f
+from Burgers1D_f import Burg1D
+
+#Burg1D(nu, nlt, N)
 
 
 # Importing libraries to plot
@@ -19,52 +21,45 @@ from matplotlib import style
 
 
 # Declaring variables to be run and then plotted
-nT = np.array([5, 10, 20, 50, 75, 100, 200, 500, 1000, 2000, 5000])
-N = np.array([5, 10, 20, 50, 75, 100, 500, 1000, 2000, 5000])
+nu = np.array([1e-2, 5e-2, 1e-1, 1])
 nlt = np.array([0, 1, 2])
+N = np.array([21, 31, 41, 51, 81, 101, 251, 501, 1001, 2001])
 
 # Matrix to store maximum errors of each run
-MD = np.zeros((np.size(nT), np.size(N), np.size(nlt)))
+MD = np.zeros((np.size(nu), np.size(nlt), np.size(N)))
 
-# Looping to find maximum error of each run
-for i in range(0, np.size(nT)):
+# Looping to get the different results
+
+for i in range(0, len(nu)):
     
-    for j in range(0, np.size(N)):
+    for j in range(0, len(nlt)):
         
-        for k in range(0, np.size(nlt)):
+        for k in range(0, len(N)):            
             
-            MD[i, j, k] = np.linalg.norm(Burgers_f(N[j], nT[i], nlt[k]))
+            temp = Burg1D(nu[i], 1, N[k])
+            MD[i, j, k] = np.linalg.norm(temp)
+            
+            
+# Plotting the different results in order to compare them 
+            
+style.use('ggplot')    
 
+for II in range(0, len(nlt)):
 
-for II in range(0, 3):
-    
-    # Plotting the error curves for each Sx
     plt.figure(II, figsize=(11, 8.5))
-    style.use('ggplot')        
-    
-    plt.subplot(1, 2, 1)
-    for i in range(0, len(N)):
-        line1 = plt.loglog(nT, MD[:, i, II], label= "N = " + str(N[i]))
-    #    plt.xlim([np.min(Nx), np.max(Nx)])
-        plt.ylim([1e-7, 2e-1])
-        plt.gca().invert_xaxis()
-        plt.ylabel(r'Infinity error norm')
-        plt.xlabel('Timestep size (s)')
-        plt.legend(loc=4)
-        plt.title('Time refining error evolution') 
-        plt.gca().invert_xaxis()
-    
-    #
-    for i in range(0, len(nT)):
-        plt.subplot(1, 2, 2)
-        line1 = plt.semilogy(N, MD[i,:, II], label = 'dT = ' + str(nT[i]))
+
+    plt.subplot(1,1,1)
+    for i in range(0, len(nu)):
+        line1 = plt.loglog(N, MD[i, II, :], label=r'$ \nu = $' + str(nu[i]))
         plt.xlim([np.min(N), np.max(N)])
-        plt.ylim([1e-7, 2e-1])
+        plt.ylim([1e-1, 1e2])
         plt.xlabel('Number of nodes')
-        plt.legend(loc=1)
-        plt.title('Space refining error evolution')
-    #
+        plt.ylabel(r'Infinity error norm')
+        plt.legend(loc=4)
+        plt.title('Error with different viscosities')
+        
+        
     
-    plt.suptitle('Error analysis for 1D Burgers with nlt = ' + str(II))
-    plt.draw()
-    plt.savefig('Convergence' + str(II) + '.pdf')
+        
+    
+

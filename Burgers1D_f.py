@@ -14,17 +14,18 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 import Analytical as an
 import Non_linear as nl
-    
-def Burgers_f(N, nT, nlt):   
+
+def Burg1D(nu, nlt, N):
+
     # ==============================================================================
     # Physical variables declaration
     # ==============================================================================
     
     X0 = -1
     XF = 1
-    nu = 10e-2
+#    nu = 1e-2
     t0 = 0.
-    tf = 1.
+    tf = 2 / np.pi 
     
     # ==============================================================================
     # Numerical parameters declaration
@@ -33,13 +34,13 @@ def Burgers_f(N, nT, nlt):
     # Management of the non linear term:    0. Primitive variables, 
     #                                       1. Divergence form
     #                                       2. Skew symmetric form
-    nlt = 0 
+#    nlt = 0 
     
     # Number of nodes in the domain (changeable for convergence analysis)
-    N = 21
+#    N = 200
     
-    # Number of timesteps for the calculation
-    nT = 100
+    # Maximum CFL number
+    CFL = 1.
     
     # Generating vector of nodes
     xn = np.linspace(X0, XF, N)
@@ -47,14 +48,17 @@ def Burgers_f(N, nT, nlt):
     # Calculating dx for value between nodes
     dx = xn[1] - xn[0]
     
-    # Generating vector of times
-    ts = np.linspace(t0, tf, nT)
+    # Estimating initial condition
+    u0 = -np.sin(np.pi * xn)
     
-    # Calculating timestep size from timestep vector
-    dt = ts[1] - ts[0]
+    # Estimating timestep size dt
+    dt = (np.max(np.abs(u0)) * dx) / CFL
+    
+    # Calculating the number of timesteps of the model
+    nT = int(np.ceil((tf - t0) / dt))
     
     # Generating vector of errors
-    ert = np.zeros(len(ts))
+    ert = np.zeros(nT + 1)
     
     # ==============================================================================
     # Assembling sparse matrix for viscous term solution. Efficient storage of 
@@ -89,21 +93,20 @@ def Burgers_f(N, nT, nlt):
         K[i, i - 1] = -16 * Sxp
         K[i, i + 2] = Sxp
         K[i, i - 2] = Sxp
-        
+    
     K = K.tocsr() 
     
     # ==============================================================================
     # Imposing initial condition as given in the problem
     # ==============================================================================
     
-    u0 = -np.sin(np.pi * xn)
     ug = np.zeros(len(u0))
     u1 = np.zeros(len(u0))
     
     ert[0] = 0
     
-    umax = np.max(u0)
-    umin = np.min(u0)
+#    umax = np.max(u0)
+#    umin = np.min(u0)
     
 #    # Plotting initial condition
 #    plt.ion()
@@ -122,7 +125,7 @@ def Burgers_f(N, nT, nlt):
     # Startting time loop of the program (solved via fractional steps)
     # ==============================================================================
     
-    for t in range(1, len(ts)):
+    for t in range(1, nT + 1):
         
         # Calculating the analytical solution for the given timestep
         ua = an.Analyt(xn, t * dt, nu)
@@ -180,7 +183,7 @@ def Burgers_f(N, nT, nlt):
 #        plt.subplot(2, 2, 3)
 #        plt.semilogy(xn, err)
 #        plt.xlim([X0, XF])
-#        plt.ylim([1e-6, 1])
+#        plt.ylim([1e-4, 1e2])
 #        plt.xlabel('Error in space')
 #        plt.ylabel('Absolute error')
 #        plt.title('Error')
@@ -188,7 +191,7 @@ def Burgers_f(N, nT, nlt):
 #        plt.subplot(2, 2, 4)
 #        plt.semilogy(np.linspace(t0, tf, nT), ert)
 #        plt.xlim([t0 - 0.2, tf + 0.2])
-#        plt.ylim([1e-6, 1e-0])
+#        plt.ylim([1e-4, 1e2])
 #        plt.xlabel(r'Time $ (s) $')
 #        plt.title('Error evolution')
 #        
@@ -196,13 +199,13 @@ def Burgers_f(N, nT, nlt):
 #        titulo = '1D Burgers equation'
 #        plt.suptitle(titulo)
 #        plt.pause(0.01)
-        
-        if ts[t] == 2 / np.pi:
-            
-            plt.svaefig('ejemplo.pdf')
+#        
+    #    if ts[t] == 2 / np.pi:
+    #        
+    #        plt.svaefig('ejemplo.pdf')
             
         
         # Updating velocities for next timestep
         u0 = u1
-    
+        
     return ert
