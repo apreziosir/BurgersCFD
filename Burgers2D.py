@@ -11,7 +11,6 @@ CFD - Pontificia Universidad Javeriana, Bogotá
 May 2018
 """
 
-
 # Modules are commented to see if they have influence on the construction of 
 # plots (they can be removed safely at the end when the program is running)
 import numpy as np
@@ -20,7 +19,7 @@ from scipy.sparse.linalg import spsolve
 #import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import cm
-#from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D
 #from pylab import *
 from matplotlib import style
 import Auxiliary2D as AUX
@@ -43,7 +42,8 @@ tf = 2 / np.pi
 
 # Physical variables of the fluid - mainly viscosity (include density when 
 # dealing with N-S solver)
-nu = 1e-3
+nu_x = 1e-2
+nu_y = 1e-2
 
 # ==============================================================================
 # DECLARATION OF NUMERICAL PARAMETERS
@@ -58,8 +58,8 @@ CFL_x = 1.0
 CFL_y = 1.0
 
 # Number of nodes in each direction
-Nx = 11                                         # Nodes in x direction
-Ny = 11                                         # Nodes in y direction
+Nx = 9                                         # Nodes in x direction
+Ny = 9                                         # Nodes in y direction
 nn = Nx * Ny                                    # Number of nodes (total)
 
 # Boundary conditions vectors BC0_u = type of BC. BC1_u = value of the BC. 
@@ -75,7 +75,7 @@ BC1_v = np.array((0, 0, 0, 0))
 
 # Generating the spatial vectors - and then the meshgrid for plotting
 xn = np.linspace(X0, XF, Nx)
-yn = np.linspace(X0, XF, Ny)
+yn = np.linspace(Y0, YF, Ny)
 
 # Calculating dx and dy
 dx = np.absolute(xn[1] - xn[0])
@@ -122,10 +122,23 @@ nT = int(np.ceil((tf - t0) / dT))
 # one for each one of the velocity fields (K_x and K_y)
 # ==============================================================================
 
+# Estimating value of the nondimensional parameters for the stiffness matrix
+# They will go as an input to the function that assembles the stiffness matrices
+Sx = nu_x * dT / (dx ** 2)
+Sy = nu_y * dT / (dy ** 2)
+
 # Staring up both stiffness matrices for u and v velocities (no values yet, just 
 # sparse and python efficiently saved)
 K_x = sp.lil_matrix((nn, nn))
 K_y = sp.lil_matrix((nn, nn))
+
+# Calling function to fill matrices according to BC type 
+K_x = AUX.Ass_matrix(K_x, Nx, Ny, Sx, Sy, BC0_u)
+K_y = AUX.Ass_matrix(K_y, Nx, Ny, Sx, Sy, BC0_v)
+
+# Storing in CSR format for implementing efficient solving in the time loop
+K_x = K_x.tocsr()
+K_y = K_y.tocsr()
 
 # ==============================================================================
 # Plotting initial conditions for the case studied
@@ -152,4 +165,9 @@ plt.ylabel('Y coordinate')
 plt.pause(3)
 
 # ==============================================================================
-# 
+# Reshaping matrices that sotre results to vectors in order to make them solva-
+# ble by matrix-vector operations
+# ==============================================================================
+
+
+#U = an.Analyt(X, Y, 0.2, nu_x)

@@ -13,7 +13,7 @@ May 2018
 
 import numpy as np
 
-def Analyt(X, Y, t, nu):
+def Analyt(xn, yn, t, nu):
     
     # Precision parameters (tweakeable part of the code for precision purposes).
     # The larger the number of points the more precise the integration
@@ -25,13 +25,14 @@ def Analyt(X, Y, t, nu):
     
     # Generating vector of points and weights
     [y, W] = np.polynomial.legendre.leggauss(err)
+    [X, Y] = np.meshgrid(xn, yn)
     
-    # Defining vector that will sotre the anaytical values for velocity    
-    ua = np.zeros(len(x))
+    # Defining vector that will sotre the anaytical values for velocity 
+    U = 0 * X * Y
+    ua = np.zeros(len(xn))
     
     # Calculating coefficients for change of variable according to integration
     # limits (new variable named y). Also calculating d_eta
-    
     yk = (inf + sup) / 2                # Constant part (usually 0, see limits)
     yc = (sup - inf) / 2                # Coefficient that goes with y
     d_eta = yc                          # dx = yc * d_eta
@@ -39,7 +40,7 @@ def Analyt(X, Y, t, nu):
     # Looping over x array to get velocity in every x position
     for o in range(0, len(y)):
         
-        for i in range(0, len(x)):
+        for i in range(0, len(xn)):
             
             # Starting values for calculating integrals when iterating in j loop
             Int1 = 0
@@ -51,7 +52,7 @@ def Analyt(X, Y, t, nu):
                 # Calculating common values for points 
                 y1 = yk + yc * y[j]
                 
-                x_y = x[i] - y1
+                x_y = xn[i] - y1
                 
                 # Calculating the factors of the numeratorintegral
                 temp1 = np.sin(np.pi * x_y)
@@ -68,7 +69,9 @@ def Analyt(X, Y, t, nu):
             # Estimating value of the velocity in the point analyzed
             ua[i] = -Int1 / Int2
             
-      
+    # Start to fill the desired velocity field
+    for i in range(0, len(yn)):
         
-    
-    return ua
+        U[:, i] = ua
+       
+    return U
