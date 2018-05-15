@@ -24,7 +24,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import style
 import Auxiliary2D as AUX
 import Analytical2D as an
-#import Non_linear_2D as nl
+import Non_linear2D as nl
 
 # ==============================================================================
 # DECLARATION OF PHYSICAL VARIABLES
@@ -45,6 +45,9 @@ tf = 2 / np.pi
 nu_x = 1e-2
 nu_y = 1e-2
 
+# Which velocity is going to be zero (for the canonical case)
+zerov = 'v'
+
 # ==============================================================================
 # DECLARATION OF NUMERICAL PARAMETERS
 # ==============================================================================
@@ -52,6 +55,11 @@ nu_y = 1e-2
 # Treatment of the non linear term. 0 = primitive variables, 1 = divergence form
 # 2 = skew symmetric form
 nlt = 0
+
+# Type of first derivative that is going to be applied. 1 = First order upwind,
+# 2 = Corrected upwind from Fletcher et al (1991), 3 = high order centered di-
+# fference
+dift = 1
 
 # Maximum CFL values for each dimension
 CFL_x = 1.0
@@ -87,8 +95,17 @@ dy = np.absolute(yn[1] - yn[0])
 # INITIAL CONDITION CALCULATION FOR ESTIMATION OF THE TIMESTEP SIZE
 # ==============================================================================
 
-# Imposing initial condition - in both dimensions
+# Imposing initial condition - in both dimensions. And declaring the vectors 
+# that will store information of the model
 [u0, v0] = AUX.I_C(X, Y)
+
+# Vectors that will store intermediate variables
+ug = np.zeros(nn)
+vg = np.zeros(nn)
+
+# Vectors that will store new velocity values
+u1 = np.zeros(nn)
+v1 = np.zeros(nn)
 
 # Estimating the size of the timestep according to maximum velocity. Checking 
 # and comparing each of the maximum velocities. 
@@ -115,7 +132,7 @@ nT = int(np.ceil((tf - t0) / dT))
 [B_B, B_R] = AUX.Bot_BR(Nx, Ny)
 [T_B, T_R] = AUX.Top_BR(Nx, Ny)
 [L_B, L_R] = AUX.Left_BR(Nx, Ny)
-[R_b, R_R] = AUX.Right_BR(Nx, Ny)
+[R_B, R_R] = AUX.Right_BR(Nx, Ny)
 
 # ==============================================================================
 # Constructing the Stiffness Matrices for the viscous terms. I need two matrices
@@ -164,10 +181,62 @@ plt.ylabel('Y coordinate')
 
 plt.pause(3)
 
+# Reshaping velocities to vectors before entering the time loop
+u0 = u0.reshape((nn, 1))
+v0 = v0.reshape((nn, 1))
+
 # ==============================================================================
 # Reshaping matrices that sotre results to vectors in order to make them solva-
 # ble by matrix-vector operations
 # ==============================================================================
 
-
+for t in range(1, nT):
+    
+    # Estimating analytical solution of the Burgers equation in the direction
+    # That is being analyzed
+    if zerov == 'u':
+        
+        ua = np.zeros(nn).reshape((Nx, Ny))
+        va = an.Analyt(xn, yn, t * dT, nu_x)
+        
+    elif zerov == 'v':
+        
+        ua = an.Analyt(yn, xn, t * dT, nu_y)
+        va = np.zeros(nn).reshape((Nx, Ny))
+        
+    # Calculating the non linear term with forward Euler explicit scheme
+    if nlt == 0:
+        
+        ug = u0 - dT * (np.multiply(u0, AUX.diffx(u0, dx, L_B, L_R, R_B, R_R, \
+                        dift)) + np.multiply(v0, AUX.diffy(v0, dy, B_B, B_R, \
+                        T_B, T_R, dift)))
+        
+        vg = v0 - dT * (np.multiply(u0, AUX.diffx(v0, dx, L_B, L_R, R_B, R_R, \
+                        dift)) + np.multiply(v0, AUX.diffy(v0, dy, B_B, B_R, \
+                        T_B, T_R, dift)))
+        
+    elif nlt == 1:
+        
+        print('Not programmed yet')
+        break
+        
+    elif nlt == 2:
+        
+        print('Not programmed yet')
+        break
+        
+    else:
+        
+        print('Wrong choice of non linear term treatment')
+        break
+    
+    
+    # Calculating the diffusive term
+    
+    
+    
+    # Generating error plots for the different cases
+        
+    
+    
 #U = an.Analyt(X, Y, 0.2, nu_x)

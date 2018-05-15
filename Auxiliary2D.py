@@ -19,10 +19,12 @@ def Top_BR(Nx, Ny):
     
     # Top boundary
     T_B = np.linspace((Ny - 1) * Nx, Nx * Ny - 1, Nx)
+    T_B = T_B.astype(int)
     
     T_R = T_B - Nx                          # Bottom ring
     T_R = np.delete(T_R, 0)                 # Taking out first
     T_R = np.delete(T_R, -1)                # Taking out last  
+    T_R = T_R.astype(int)
     
     return [T_B, T_R]
 
@@ -31,11 +33,13 @@ def Bot_BR(Nx, Ny):
     
     # Bottom boundary
     B_B = np.linspace(0, Nx - 1, Nx)
+    B_B = B_B.astype(int)
     
     # Bottom ring
     B_R = B_B + Nx                          # Bottom ring
     B_R = np.delete(B_R, 0)                 # Taking out first
     B_R = np.delete(B_R, -1)                # Taking out last
+    B_R = B_R.astype(int)
     
     return [B_B, B_R]
 
@@ -44,10 +48,12 @@ def Left_BR(Nx, Ny):
     
     # Left boundary
     L_B = np.linspace(Nx, (Ny - 2) * Nx, Ny - 2)                
+    L_B = L_B.astype(int)
     
     L_R = L_B + 1                           # Left ring
     L_R = np.delete(L_R, 0)                 # Taking out first
     L_R = np.delete(L_R, -1)                # Taking out last
+    L_R = L_R.astype(int)
     
     return [L_B, L_R]
     
@@ -57,11 +63,13 @@ def Right_BR(Nx, Ny):
     # Right boundary
     L_B = np.linspace(Nx, (Ny - 2) * Nx, Ny - 2)
     R_B = L_B + Nx
+    R_B = R_B.astype(int)
     del(L_B)
     
     R_R = R_B - 1                           # Right ring
     R_R = np.delete(R_R, 0)                 # Taking out first
     R_R = np.delete(R_R, -1)                # Taking out last
+    R_R = R_R.astype(int)
    
     return [R_B, R_R]
 
@@ -150,3 +158,70 @@ def Ass_matrix(K, Nx, Ny, Sx, Sy, BC0):
         K[R_B, R_B - 1] = -1
     
     return K
+
+# ==============================================================================
+# FIRST DERIVATIVES IN SPACE. EACH CASE OF DERIVATION IS TREATED HERE
+# THE FLAG THAT MARKS THE TYPE OF DERIVATION IS THE VARIABLE dift
+# ==============================================================================
+# ==============================================================================
+# Differentiating a vector in the x direction - not imposing BC yet. Works for 
+# u and v independently
+# ==============================================================================
+    
+def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
+    
+    # Defining vector that will store the derivative - column vector, like the
+    # one that enters the function
+    diffx = np.zeros((len(u), 1))
+    nn = len(u)
+    
+    # Normal upwind direction
+    if dift == 1:
+        
+        for i in range(1, nn - 1):
+            
+            if u[i] >= 0:
+                
+                diffx[i] = (u[i] - u[i - 1]) / dx
+            
+            else:
+                
+                diffx[i] = (u[i + 1] - u[i]) / dx
+        
+        diffx[L_B] = (u[L_B + 1] - u[i]) / dx
+        
+        diffx[R_B] = (u[i] - u[R_B - 1]) / dx
+    
+    return diffx
+# ==============================================================================
+# Differentiating a vector in the y direction - not imposing BC yet. Works for
+# u and v independently
+# ==============================================================================
+
+def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
+    
+    # Defining vector that will store the derivative - column vector like the 
+    # one that enters to the function
+    diffy = np.zeros((len(v), 1))
+    Nx = len(B_B)
+    
+    # Normal upwind direction
+    if dift == 1:
+        
+        for i in range(B_B[-1] + 1, T_B[0]):
+            
+            if v[i] >= 0:
+                
+                diffy[i] = (v[i] - v[i - Nx]) / dy
+            
+            else:
+                
+                diffy[i] = (v[i + Nx] - v[i]) / dy
+                
+        diffy[B_B] = (v[B_B + Nx] - v[i]) / dy
+        
+        diffy[T_B] = (v[T_B] - v[T_B - Nx]) / dy    
+    
+    return diffy
+
+# ==============================================================================
