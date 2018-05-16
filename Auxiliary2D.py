@@ -218,7 +218,7 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
     # Normal upwind direction
     if dift == 1:
         
-        for i in range(B_B[-1] + 1, T_B[0]):
+        for i in range(B_R[0], T_B[0]):
             
             if v[i] >= 0:
                 
