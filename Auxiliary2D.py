@@ -19,6 +19,7 @@ def Top_BR(Nx, Ny):
     
     # Top boundary
     T_B = np.linspace((Ny - 1) * Nx, Nx * Ny - 1, Nx)
+    T_B = np.transpose(T_B)
     T_B = T_B.astype(int)
     
     T_R = T_B - Nx                          # Bottom ring
@@ -33,6 +34,7 @@ def Bot_BR(Nx, Ny):
     
     # Bottom boundary
     B_B = np.linspace(0, Nx - 1, Nx)
+    B_B = np.transpose(B_B)
     B_B = B_B.astype(int)
     
     # Bottom ring
@@ -48,6 +50,7 @@ def Left_BR(Nx, Ny):
     
     # Left boundary
     L_B = np.linspace(Nx, (Ny - 2) * Nx, Ny - 2)                
+    L_B = np.transpose(L_B)
     L_B = L_B.astype(int)
     
     L_R = L_B + 1                           # Left ring
@@ -62,7 +65,8 @@ def Right_BR(Nx, Ny):
     
     # Right boundary
     L_B = np.linspace(Nx, (Ny - 2) * Nx, Ny - 2)
-    R_B = L_B + Nx
+    R_B = L_B + Nx - 1
+    R_B = np.transpose(R_B)
     R_B = R_B.astype(int)
     del(L_B)
     
@@ -77,16 +81,20 @@ def Right_BR(Nx, Ny):
 # IMPOSING INITIAL CONDITION
 # ==============================================================================
 
-def I_C(X, Y):
+def I_C(X, Y, vzero):
     
     # Initial conditions for Burgers 2D test equation - use just one and set the 
     # other one to 0 for testing purposes
-    u0 = -np.sin(np.pi * X)
-#    v0 = -np.sin(np.pi * Y)
+    
+    # Velocity equals zero in y direction
+    if vzero == 'v':
+        u0 = -np.sin(np.pi * X)
+        v0 = 0 * X * Y
 
-    # Zero condition
-#    u0 = 0 * X * Y
-    v0 = 0 * X * Y
+    # Velocity equals 0 in x direction
+    elif vzero == 'u':        
+        u0 = 0 * X * Y
+        v0 = -np.sin(np.pi * Y)
     
     return [u0, v0]
 
@@ -108,7 +116,7 @@ def Ass_matrix(K, Nx, Ny, Sx, Sy, BC0):
    
     # Filling matrix with typical nodal values (then the boundary nodes are 
     # replaced with rows equal to 0 and changed)
-    for i in range(int(B_R[0]), int(T_R[-1])):
+    for i in range(int(B_R[0]), int(T_B[0])):
         
         K[i, i] = 1 + 2 * Sx + 2 * Sy
         K[i, i + 1] = -Sx
@@ -122,7 +130,7 @@ def Ass_matrix(K, Nx, Ny, Sx, Sy, BC0):
     K[R_B, :] = np.zeros(nn)
     K[L_B, :] = np.zeros(nn)
     
-    # Looking ofr each case of boundary condition and setting it to the matrix
+    # Looking for each case of boundary condition and setting it to the matrix
     # in each one of the boundary nodes
     
     # Bottom
@@ -174,6 +182,7 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
     # one that enters the function
     diffx = np.zeros((len(u), 1))
     nn = len(u)
+    u = u.reshape((len(u), 1))
     
     # Normal upwind direction
     if dift == 1:
@@ -204,6 +213,7 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
     # one that enters to the function
     diffy = np.zeros((len(v), 1))
     Nx = len(B_B)
+    v = v.reshape((len(v), 1))
     
     # Normal upwind direction
     if dift == 1:
@@ -218,7 +228,7 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
                 
                 diffy[i] = (v[i + Nx] - v[i]) / dy
                 
-        diffy[B_B] = (v[B_B + Nx] - v[i]) / dy
+        diffy[B_B] = (v[B_B + Nx] - v[B_B]) / dy
         
         diffy[T_B] = (v[T_B] - v[T_B - Nx]) / dy    
     

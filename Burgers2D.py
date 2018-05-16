@@ -24,7 +24,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import style
 import Auxiliary2D as AUX
 import Analytical2D as an
-import Non_linear2D as nl
 
 # ==============================================================================
 # DECLARATION OF PHYSICAL VARIABLES
@@ -66,8 +65,8 @@ CFL_x = 1.0
 CFL_y = 1.0
 
 # Number of nodes in each direction
-Nx = 9                                         # Nodes in x direction
-Ny = 9                                         # Nodes in y direction
+Nx = 50                                         # Nodes in x direction
+Ny = 50                                         # Nodes in y direction
 nn = Nx * Ny                                    # Number of nodes (total)
 
 # Boundary conditions vectors BC0_u = type of BC. BC1_u = value of the BC. 
@@ -75,11 +74,21 @@ nn = Nx * Ny                                    # Number of nodes (total)
 # The order of the BC is [bottom, top, left, right]
 # For BC0 0 = Dirichlet, 1 = Neumann
 # For BC1 the value of the Bc is stored
-BC0_u = np.array((1, 1, 0, 0))
-BC0_v = np.array((0, 0, 1, 1))
-
-BC1_u = np.array((0, 0, 0, 0))
-BC1_v = np.array((0, 0, 0, 0)) 
+if zerov == 'v':
+    
+    BC0_u = np.array((1, 1, 0, 0))
+    BC0_v = np.array((0, 0, 1, 1))
+    
+    BC1_u = np.array((0, 0, 0, 0))
+    BC1_v = np.array((0, 0, 0, 0)) 
+    
+elif zerov == 'u':
+    
+    BC0_u = np.array((0, 0, 1, 1))
+    BC0_v = np.array((1, 1, 0, 0))
+    
+    BC1_u = np.array((0, 0, 0, 0))
+    BC1_v = np.array((0, 0, 0, 0))    
 
 # Generating the spatial vectors - and then the meshgrid for plotting
 xn = np.linspace(X0, XF, Nx)
@@ -97,15 +106,15 @@ dy = np.absolute(yn[1] - yn[0])
 
 # Imposing initial condition - in both dimensions. And declaring the vectors 
 # that will store information of the model
-[u0, v0] = AUX.I_C(X, Y)
+[u0, v0] = AUX.I_C(X, Y, zerov)
 
 # Vectors that will store intermediate variables
-ug = np.zeros(nn)
-vg = np.zeros(nn)
+ug = np.zeros((nn, 1))
+vg = np.zeros((nn, 1))
 
 # Vectors that will store new velocity values
-u1 = np.zeros(nn)
-v1 = np.zeros(nn)
+u1 = np.zeros((nn, 1))
+v1 = np.zeros((nn, 1))
 
 # Estimating the size of the timestep according to maximum velocity. Checking 
 # and comparing each of the maximum velocities. 
@@ -119,6 +128,10 @@ dT = UVmax * np.maximum(dx, dy) / np.maximum(CFL_x, CFL_y)
 
 # Calculating the number of timesteps of the model
 nT = int(np.ceil((tf - t0) / dT))
+
+# Generating error vectors for u and v
+ert_u = np.zeros((nT, 1))
+ert_v = np.zeros((nT, 1))
 
 # ==============================================================================
 # SEARCHING THE NODES THAT CORRESPOND TO THE BOUNDARY OF THE DOMAIN - This 
@@ -157,6 +170,23 @@ K_y = AUX.Ass_matrix(K_y, Nx, Ny, Sx, Sy, BC0_v)
 K_x = K_x.tocsr()
 K_y = K_y.tocsr()
 
+# Plotting matrices to see how they are constructed
+style.use('ggplot')
+plt.ion()
+plt.figure(1, figsize=(20, 15))
+
+fig1 = plt.subplot(1, 2, 1)
+mat1 = plt.spy(K_x)
+plt.title('Matrix for u velocity')
+
+fig2 = plt.subplot(1, 2, 2)
+mat2 = plt.spy(K_y)
+plt.title('Matrix fo v velocity')
+
+plt.draw()
+plt.pause(1.5)
+plt.clf()
+
 # ==============================================================================
 # Plotting initial conditions for the case studied
 # ==============================================================================
@@ -167,19 +197,22 @@ plt.figure(1, figsize=(20, 15))
 fig1 = plt.subplot(1, 2, 1, projection='3d')
 surf1 = fig1.plot_surface(X, Y, u0, rstride=1, cstride=1, linewidth=0, 
                        cmap=cm.coolwarm, antialiased=False)
-plt.title('Initial condition for U (m/s)')
-plt.xlabel('X coordinate')
-plt.ylabel('Y coordinate')
-
+fig1.set_title('Initial condition for U (m/s)')
+fig1.set_xlabel('X coordinate')
+fig1.set_ylabel('Y coordinate')
+fig1.tick_params(axis='both', which='major', labelsize=6)
 
 fig2 = plt.subplot(1, 2, 2, projection='3d')
 surf1 = fig2.plot_surface(X, Y, v0, rstride=1, cstride=1, linewidth=0, 
                        cmap=cm.coolwarm, antialiased=False)
-plt.title('Initial condition for V (m/s)')
-plt.xlabel('X coordinate')
-plt.ylabel('Y coordinate')
+fig2.set_title('Initial condition for V (m/s)')
+fig2.set_xlabel('X coordinate')
+fig2.set_ylabel('Y coordinate')
+fig2.tick_params(axis='both', which='major', labelsize=6)
 
-plt.pause(3)
+plt.draw()
+plt.pause(2)
+plt.clf()
 
 # Reshaping velocities to vectors before entering the time loop
 u0 = u0.reshape((nn, 1))
@@ -197,46 +230,164 @@ for t in range(1, nT):
     if zerov == 'u':
         
         ua = np.zeros(nn).reshape((Nx, Ny))
-        va = an.Analyt(xn, yn, t * dT, nu_x)
+        va = an.Analyt(yn, xn, t * dT, nu_x)
         
     elif zerov == 'v':
         
-        ua = an.Analyt(yn, xn, t * dT, nu_y)
+        ua = an.Analyt(xn, yn, t * dT, nu_y)
         va = np.zeros(nn).reshape((Nx, Ny))
+    
+    # Error message    
+    else:
+        
+        print('Wrong choice of which one is the zero velocity')
+        break
         
     # Calculating the non linear term with forward Euler explicit scheme
+    # Primitive variables 
     if nlt == 0:
         
+        # reshaping vectors for dimensional conformity
+        u0 = u0.reshape((nn, 1))
+        v0 = v0.reshape((nn, 1))
+        
+        # Calculating non linear term with primitive variables for u and v 
+        # velocities
         ug = u0 - dT * (np.multiply(u0, AUX.diffx(u0, dx, L_B, L_R, R_B, R_R, \
-                        dift)) + np.multiply(v0, AUX.diffy(v0, dy, B_B, B_R, \
+                        dift)) + np.multiply(v0, AUX.diffy(u0, dy, B_B, B_R, \
                         T_B, T_R, dift)))
         
         vg = v0 - dT * (np.multiply(u0, AUX.diffx(v0, dx, L_B, L_R, R_B, R_R, \
                         dift)) + np.multiply(v0, AUX.diffy(v0, dy, B_B, B_R, \
                         T_B, T_R, dift)))
-        
+    
+    # Divergence form - only appliable to  terms with same vector, the other is
+    # still treated as a primitive variable    
     elif nlt == 1:
         
-        print('Not programmed yet')
-        break
+        # reshaping vectors for dimensional conformity
+        u0 = u0.reshape((nn, 1))
+        v0 = v0.reshape((nn, 1))
         
+        # Temporal variables that store the square of the velocity vector u or v
+        ugt = u0 ** 2
+        vgt = v0 ** 2
+        
+        ug = u0 - dT * (0.5 * AUX.diffx(ugt, dx, L_B, L_R, R_B, R_R, dift) + \
+                        AUX.diffy(np.multiply(v0, u0), dy, B_B, B_R, T_B, T_R, \
+                        dift))
+        
+        vg = v0 - dT * (0.5 * AUX.diffy(vgt, dy, B_B, B_R, T_B, T_R, dift) + \
+                        AUX.diffx(np.multiply(u0, v0), dx, L_B, L_R, R_B, R_R, \
+                        dift))
+                     
+    # Skew symmetric form for the non linear term. The term with two different 
+    # vectors is treated with primitive variables
     elif nlt == 2:
         
+        ugt = np.multiply(u0, u0)
+        vgt = np.multiply(v0, v0)
+        
         print('Not programmed yet')
         break
-        
+    
+    # Error message for wrong choice of non linear term treatment    
     else:
         
-        print('Wrong choice of non linear term treatment')
+        print('Wrong choice of non linear term treatment. Please check the main\
+               part of the code and make a good selection')
         break
     
+    # Imposing boundary conditions for solving the viscous term
+    # Boundary conditions for u velocity
+    ug[B_B] = np.ones((Nx, 1)) * BC1_u[0]
+    ug[T_B] = np.ones((Nx, 1)) * BC1_u[1]
+    ug[L_B] = np.ones((Ny - 2, 1)) * BC1_u[2]
+    ug[R_B] = np.ones((Ny - 2, 1)) * BC1_u[3]
+    
+    # Boundary conditions for v velocity
+    ug[B_B] = np.ones((Nx, 1)) * BC1_v[0]
+    ug[T_B] = np.ones((Nx, 1)) * BC1_v[1]
+    ug[L_B] = np.ones((Ny - 2, 1)) * BC1_v[2]
+    ug[R_B] = np.ones((Ny - 2, 1)) * BC1_v[3]
     
     # Calculating the diffusive term
+    u1 = spsolve(K_x, ug)
+    v1 = spsolve(K_y, vg)    
     
+    # Estimating error
+    ert_u = np.absolute(u1.reshape((nn, 1)) - ua.reshape((nn, 1)))
+    ert_v = np.absolute(v1.reshape((nn, 1)) - va.reshape((nn, 1)))
     
+    # Plotting the solution
+    # Plotting numerical solution and comparison with analytical
+    plt.clf()
     
-    # Generating error plots for the different cases
-        
+    fig1 = plt.subplot(2, 3, 1, projection='3d')
+    surf1 = fig1.plot_surface(X, Y, u1.reshape((Nx, Ny)), rstride=1, \
+            cstride=1, linewidth=0, cmap=cm.coolwarm, antialiased=False)
+    fig1.set_xlim([X0, XF])
+    fig1.set_ylim([Y0, YF])
+    fig1.set_zlim3d([-1., 1.])
+    fig1.set_xlabel(r'x axis')
+    fig1.set_ylabel(r'y axis')
+    fig1.tick_params(axis='both', which='major', labelsize=6)
+    fig1.set_title('Numerical u velocity')
     
+    fig2 = plt.subplot(2, 3, 2, projection='3d')
+    surf2 = fig2.plot_surface(X, Y, v1.reshape((Nx, Ny)), rstride=1, \
+            cstride=1, linewidth=0, cmap=cm.coolwarm, antialiased=False)
+    fig2.set_xlim([X0, XF])
+    fig2.set_ylim([Y0, YF])
+    fig2.set_zlim3d([-1., 1.])
+    fig2.set_xlabel(r'x axis')
+    fig2.set_ylabel(r'y axis')
+    fig2.tick_params(axis='both', which='major', labelsize=6)
+    fig2.set_title('Numerical v velocity')
     
-#U = an.Analyt(X, Y, 0.2, nu_x)
+    fig3 = plt.subplot(2, 3, 4, projection='3d')
+    surf3 = fig3.plot_surface(Y, X, ua, rstride=1, cstride=1, linewidth=0, \
+                              cmap=cm.coolwarm, antialiased=False)
+    fig3.set_xlim([X0, XF])
+    fig3.set_ylim([Y0, YF])
+    fig3.set_zlim3d([-1., 1.])
+    fig3.set_xlabel(r'x axis')
+    fig3.set_ylabel(r'y axis')
+    fig3.tick_params(axis='both', which='major', labelsize=6)
+    fig3.set_title('Analytical u velocity')
+    
+    fig4 = plt.subplot(2, 3, 5, projection='3d')
+    surf4 = fig4.plot_surface(X, Y, va, rstride=1, cstride=1, linewidth=0, \
+                              cmap=cm.coolwarm, antialiased=False)
+    fig4.set_xlim([X0, XF])
+    fig4.set_ylim([Y0, YF])
+    fig4.set_zlim3d([-1., 1.])
+    fig4.tick_params(axis='both', which='major', labelsize=6)
+    fig4.set_xlabel(r'x axis')
+    fig4.set_ylabel(r'y axis')
+    fig4.set_title('Analytical v velocity')
+    
+    fig5 = plt.subplot(2, 3, 3)
+    hm1 = plt.contourf(X, Y, np.log10(ert_u.reshape((Nx, Ny))))
+    fig5.set_xlim([X0, XF])
+    fig5.set_ylim([Y0, YF])
+    fig5.set_xlabel(r'x axis')
+    fig5.set_ylabel(r'y axis')
+    fig5.set_title('Error for u velocity')
+
+    fig6 = plt.subplot(2, 3, 6)
+    hm1 = plt.contourf(X, Y, np.log10(ert_v.reshape((Nx, Ny))))
+    fig6.set_xlim([X0, XF])
+    fig6.set_ylim([Y0, YF])
+    fig6.set_xlabel(r'x axis')
+    fig6.set_ylabel(r'y axis')
+    fig6.set_title('Error for v velocity')
+    
+    plt.draw()
+    titulo = '2D Burgers equation'
+    plt.suptitle(titulo)
+    plt.pause(0.01)
+    
+    # Setting up the next timestep
+    u0 = u1
+    v0 = v1

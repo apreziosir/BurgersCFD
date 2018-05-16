@@ -36,7 +36,7 @@ tf = 2 / np.pi
 nlt = 0 
 
 # Number of nodes in the domain (changeable for convergence analysis)
-N = 20
+N = 500
 
 # Maximum CFL number
 CFL = 1.
