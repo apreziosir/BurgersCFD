@@ -60,13 +60,19 @@ nlt = 0
 # fference
 dift = 1
 
+# Type of second derivative that is going to be implemented. This affects the 
+# matrix construction of the viscous term. If Der2 = 0 the normal scheme is used
+# If Der2 = 1, a five point scheme is implemented (where possible, hence, inside
+# nodes. The ring nodes are treated with second order scheme)
+Der2 = 1
+
 # Maximum CFL values for each dimension
 CFL_x = 1.0
 CFL_y = 1.0
 
 # Number of nodes in each direction
-Nx = 50                                         # Nodes in x direction
-Ny = 50                                         # Nodes in y direction
+Nx = 100                                         # Nodes in x direction
+Ny = 100                                         # Nodes in y direction
 nn = Nx * Ny                                    # Number of nodes (total)
 
 # Boundary conditions vectors BC0_u = type of BC. BC1_u = value of the BC. 
@@ -77,15 +83,15 @@ nn = Nx * Ny                                    # Number of nodes (total)
 if zerov == 'v':
     
     BC0_u = np.array((1, 1, 0, 0))
-    BC0_v = np.array((0, 0, 1, 1))
+    BC0_v = np.array((0, 0, 0, 0))
     
     BC1_u = np.array((0, 0, 0, 0))
     BC1_v = np.array((0, 0, 0, 0)) 
     
 elif zerov == 'u':
     
-    BC0_u = np.array((0, 0, 1, 1))
-    BC0_v = np.array((1, 1, 0, 0))
+    BC0_u = np.array((0, 0, 0, 0))
+    BC0_v = np.array((0, 0, 1, 1))
     
     BC1_u = np.array((0, 0, 0, 0))
     BC1_v = np.array((0, 0, 0, 0))    
@@ -115,6 +121,10 @@ vg = np.zeros((nn, 1))
 # Vectors that will store new velocity values
 u1 = np.zeros((nn, 1))
 v1 = np.zeros((nn, 1))
+
+# Vectors that store spatial error
+ers_u = np.zeros((nn, 1))
+ers_v = np.zeros((nn, 1))
 
 # Estimating the size of the timestep according to maximum velocity. Checking 
 # and comparing each of the maximum velocities. 
@@ -163,8 +173,8 @@ K_x = sp.lil_matrix((nn, nn))
 K_y = sp.lil_matrix((nn, nn))
 
 # Calling function to fill matrices according to BC type 
-K_x = AUX.Ass_matrix(K_x, Nx, Ny, Sx, Sy, BC0_u)
-K_y = AUX.Ass_matrix(K_y, Nx, Ny, Sx, Sy, BC0_v)
+K_x = AUX.Ass_matrix(K_x, Nx, Ny, Sx, Sy, BC0_u, Der2)
+K_y = AUX.Ass_matrix(K_y, Nx, Ny, Sx, Sy, BC0_v, Der2)
 
 # Storing in CSR format for implementing efficient solving in the time loop
 K_x = K_x.tocsr()
@@ -223,14 +233,14 @@ v0 = v0.reshape((nn, 1))
 # ble by matrix-vector operations
 # ==============================================================================
 
-for t in range(1, nT):
+for t in range(1, nT + 1):
     
     # Estimating analytical solution of the Burgers equation in the direction
     # That is being analyzed
     if zerov == 'u':
         
         ua = np.zeros(nn).reshape((Nx, Ny))
-        va = an.Analyt(yn, xn, t * dT, nu_x)
+        va = an.Analyt(xn, yn, t * dT, nu_x).transpose()
         
     elif zerov == 'v':
         
@@ -306,18 +316,22 @@ for t in range(1, nT):
     ug[R_B] = np.ones((Ny - 2, 1)) * BC1_u[3]
     
     # Boundary conditions for v velocity
-    ug[B_B] = np.ones((Nx, 1)) * BC1_v[0]
-    ug[T_B] = np.ones((Nx, 1)) * BC1_v[1]
-    ug[L_B] = np.ones((Ny - 2, 1)) * BC1_v[2]
-    ug[R_B] = np.ones((Ny - 2, 1)) * BC1_v[3]
+    vg[B_B] = np.ones((Nx, 1)) * BC1_v[0]
+    vg[T_B] = np.ones((Nx, 1)) * BC1_v[1]
+    vg[L_B] = np.ones((Ny - 2, 1)) * BC1_v[2]
+    vg[R_B] = np.ones((Ny - 2, 1)) * BC1_v[3]
     
     # Calculating the diffusive term
     u1 = spsolve(K_x, ug)
     v1 = spsolve(K_y, vg)    
     
-    # Estimating error
-    ert_u = np.absolute(u1.reshape((nn, 1)) - ua.reshape((nn, 1)))
-    ert_v = np.absolute(v1.reshape((nn, 1)) - va.reshape((nn, 1)))
+    # Estimating error in space
+    ers_u = np.absolute(u1.reshape((nn, 1)) - ua.reshape((nn, 1)))
+    ers_v = np.absolute(v1.reshape((nn, 1)) - va.reshape((nn, 1)))
+    
+    # Estimating error in time
+    ert_u[t - 1] = np.linalg.norm(np.linalg.norm(ers_u, np.inf))
+    ert_v[t - 1] = np.linalg.norm(np.linalg.norm(ers_v, np.inf))
     
     # Plotting the solution
     # Plotting numerical solution and comparison with analytical
@@ -346,7 +360,7 @@ for t in range(1, nT):
     fig2.set_title('Numerical v velocity')
     
     fig3 = plt.subplot(2, 3, 4, projection='3d')
-    surf3 = fig3.plot_surface(Y, X, ua, rstride=1, cstride=1, linewidth=0, \
+    surf3 = fig3.plot_surface(X, Y, ua, rstride=1, cstride=1, linewidth=0, \
                               cmap=cm.coolwarm, antialiased=False)
     fig3.set_xlim([X0, XF])
     fig3.set_ylim([Y0, YF])
@@ -367,21 +381,40 @@ for t in range(1, nT):
     fig4.set_ylabel(r'y axis')
     fig4.set_title('Analytical v velocity')
     
-    fig5 = plt.subplot(2, 3, 3)
-    hm1 = plt.contourf(X, Y, np.log10(ert_u.reshape((Nx, Ny))))
-    fig5.set_xlim([X0, XF])
-    fig5.set_ylim([Y0, YF])
-    fig5.set_xlabel(r'x axis')
-    fig5.set_ylabel(r'y axis')
-    fig5.set_title('Error for u velocity')
+    if zerov == 'v':
+        
+        fig5 = plt.subplot(2, 3, 3)
+        hm1 = plt.contourf(X, Y, np.log10(ers_u.reshape((Nx, Ny))))
+        fig5.set_xlim([X0, XF])
+        fig5.set_ylim([Y0, YF])
+        fig5.set_xlabel(r'x axis')
+        fig5.set_ylabel(r'y axis')
+        fig5.set_title('Error for u velocity')
+        plt.colorbar()
+        
+        fig6 = plt.subplot(2, 3, 6)
+        ert = plt.semilogy(np.linspace(t0, tf, nT ), ert_u)
+        fig6.set_xlim([t0 - 0.05, tf + 0.05])
+        fig6.set_ylim([1e-4, 1e2])
+        fig6.set_title('Error in time evolution')
+        
 
-    fig6 = plt.subplot(2, 3, 6)
-    hm1 = plt.contourf(X, Y, np.log10(ert_v.reshape((Nx, Ny))))
-    fig6.set_xlim([X0, XF])
-    fig6.set_ylim([Y0, YF])
-    fig6.set_xlabel(r'x axis')
-    fig6.set_ylabel(r'y axis')
-    fig6.set_title('Error for v velocity')
+    else:
+        
+        fig5 = plt.subplot(2, 3, 3)
+        hm1 = plt.contourf(X, Y, np.log10(ers_v.reshape((Nx, Ny))))
+        fig5.set_xlim([X0, XF])
+        fig5.set_ylim([Y0, YF])
+        fig5.set_xlabel(r'x axis')
+        fig5.set_ylabel(r'y axis')
+        fig5.set_title('Error for v velocity')
+        plt.colorbar()
+        
+        fig6 = plt.subplot(2, 3, 6)
+        ert = plt.semilogy(np.linspace(t0, tf, nT ), ert_v)
+        fig6.set_xlim([t0 - 0.05, tf + 0.05])
+        fig6.set_ylim([1e-4, 1e2])
+        fig6.set_title('Error in time evolution')
     
     plt.draw()
     titulo = '2D Burgers equation'
