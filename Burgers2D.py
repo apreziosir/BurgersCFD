@@ -45,7 +45,7 @@ nu_x = 1e-2
 nu_y = 1e-2
 
 # Which velocity is going to be zero (for the canonical case)
-zerov = 'v'
+zerov = 'u'
 
 # ==============================================================================
 # DECLARATION OF NUMERICAL PARAMETERS
@@ -55,9 +55,9 @@ zerov = 'v'
 # 2 = skew symmetric form
 nlt = 0
 
-# Type of first derivative that is going to be applied. 1 = First order upwind,
-# 2 = Corrected upwind from Fletcher et al (1991), 3 = high order centered di-
-# fference
+# Type of first derivative that is going to be applied. 0 = First order upwind,
+# 1 = Corrected upwind from Fletcher et al (1991), 2 = high order centered di-
+# fference (5 point scheme)
 dift = 1
 
 # Type of second derivative that is going to be implemented. This affects the 
@@ -71,8 +71,8 @@ CFL_x = 1.0
 CFL_y = 1.0
 
 # Number of nodes in each direction
-Nx = 100                                         # Nodes in x direction
-Ny = 100                                         # Nodes in y direction
+Nx = 10                                         # Nodes in x direction
+Ny = 10                                         # Nodes in y direction
 nn = Nx * Ny                                    # Number of nodes (total)
 
 # Boundary conditions vectors BC0_u = type of BC. BC1_u = value of the BC. 
@@ -389,15 +389,17 @@ for t in range(1, nT + 1):
         fig5.set_ylim([Y0, YF])
         fig5.set_xlabel(r'x axis')
         fig5.set_ylabel(r'y axis')
-        fig5.set_title('Error for u velocity')
+        fig5.set_title('Error for u velocity (log10)')
+        fig5.tick_params(axis='both', which='major', labelsize=6)
         plt.colorbar()
-        
+                
         fig6 = plt.subplot(2, 3, 6)
         ert = plt.semilogy(np.linspace(t0, tf, nT ), ert_u)
         fig6.set_xlim([t0 - 0.05, tf + 0.05])
         fig6.set_ylim([1e-4, 1e2])
+        fig6.set_xlabel('Time elapsed')
         fig6.set_title('Error in time evolution')
-        
+        fig6.tick_params(axis='both', which='major', labelsize=8)        
 
     else:
         
@@ -407,17 +409,20 @@ for t in range(1, nT + 1):
         fig5.set_ylim([Y0, YF])
         fig5.set_xlabel(r'x axis')
         fig5.set_ylabel(r'y axis')
-        fig5.set_title('Error for v velocity')
+        fig5.set_title(r'Error for v velocity (log10)')
+        fig5.tick_params(axis='both', which='major', labelsize=6)
         plt.colorbar()
         
         fig6 = plt.subplot(2, 3, 6)
         ert = plt.semilogy(np.linspace(t0, tf, nT ), ert_v)
         fig6.set_xlim([t0 - 0.05, tf + 0.05])
         fig6.set_ylim([1e-4, 1e2])
-        fig6.set_title('Error in time evolution')
+        fig6.set_title(r'Error in time evolution')
+        fig6.set_xlabel('Time elapsed')
+        fig6.tick_params(axis='both', which='major', labelsize=8)
     
     plt.draw()
-    titulo = '2D Burgers equation'
+    titulo = r'2D Burgers equation'
     plt.suptitle(titulo)
     plt.pause(0.01)
     

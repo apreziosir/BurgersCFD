@@ -232,6 +232,9 @@ def Ass_matrix(K, Nx, Ny, Sx, Sy, BC0, Der2):
     
 def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
     
+    # Parameters that can be changed for convenience when running the function
+    q = 0.5
+    
     # Defining vector that will store the derivative - column vector, like the
     # one that enters the function
     diffx = np.zeros((len(u), 1))
@@ -239,7 +242,7 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
     u = u.reshape((len(u), 1))
     
     # Normal upwind direction
-    if dift == 1:
+    if dift == 0:
         
         for i in range(1, nn - 1):
             
@@ -255,6 +258,61 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
         
         diffx[R_B] = (u[i] - u[R_B - 1]) / dx
     
+    # Corrected three point upwind from Fletcher 1991    
+    elif dift == 1:
+        
+        for i in range(0, nn):
+            
+            # Testing if element is in Left boundary - since it is a boundary I 
+            # have to apply first order upwind scheme
+            if np.isin(i, L_B) or i == 0 or i == L_B[-1] + L_B[0]: 
+                
+                diffx[i] = (u[i + 1] - u[i]) / dx 
+                    
+            # Testing if element is in Left ring - Second order is applied only 
+            # if velocity is negative
+            elif np.isin(i, L_R) or i == L_R[-1] + L_B[0] or i == L_R[0] - \
+            L_B[0]:
+                
+                if u[i] >= 0 : diffx[i] = (u[i] - u[i - 1]) / dx
+                
+                else:
+                    
+                    diffx[i] = (u[i + 1] - u[i - 1]) / (2 * dx) + q * (u[i - 1]\
+                         - 3 * u[i] + 3 * u[i + 1] - u[i + 2]) / (3 * dx)
+                    
+            # Testing if element is in right boundary - First order upwind since
+            # it is a boundary
+            elif np.isin(i, R_B) or i == nn - 1 or i == R_B[0] - L_B[0]: 
+                
+                diffx[i] = (u[i] - u[i - 1]) / dx
+                    
+            # Testing if element is in right ring - Second order is applied only
+            # if velocity is positive
+            elif np.isin(i, R_R) or i == R_R[-1] + L_B[0] or i == R_R[0] - \
+            L_B[0]:
+                
+                if u[i] < 0 : diffx[i] = (u[i + 1] - u[i]) / dx
+                    
+                else:
+                    
+                    diffx[i] = (u[i + 1] - u[i - 1]) / (2 * dx) + q * (u[i - 2]\
+                         - 3 * u[i - 1] + 3 * u[i] - u[i + 1]) / (3 * dx)
+                                
+            # Internal nodes - The choice is made according to the velocity and 
+            # the high order scheme can be applied
+            else:
+                
+                if u[i] >= 0:
+                    
+                    diffx[i] = (u[i + 1] - u[i - 1]) / (2 * dx) + q * (u[i - 2]\
+                         - 3 * u[i - 1] + 3 * u[i] - u[i + 1]) / (3 * dx)              
+                    
+                else:
+                    
+                    diffx[i] = (u[i + 1] - u[i - 1]) / (2 * dx) + q * (u[i - 1]\
+                         - 3 * u[i] + 3 * u[i + 1] - u[i + 2]) / (3 * dx)
+    
     return diffx
 # ==============================================================================
 # Differentiating a vector in the y direction - not imposing BC yet. Works for
@@ -263,14 +321,18 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
 
 def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
     
+    # Parameters that can be changed for convenience when running the function
+    q = 0.5
+    
     # Defining vector that will store the derivative - column vector like the 
     # one that enters to the function
+    nn = len(v)
     diffy = np.zeros((len(v), 1))
     Nx = len(B_B)
     v = v.reshape((len(v), 1))
     
     # Normal upwind direction
-    if dift == 1:
+    if dift == 0:
         
         for i in range(B_B[-1] + 1, T_B[0]):
             
@@ -284,7 +346,59 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
                 
         diffy[B_B] = (v[B_B + Nx] - v[B_B]) / dy
         
-        diffy[T_B] = (v[T_B] - v[T_B - Nx]) / dy    
+        diffy[T_B] = (v[T_B] - v[T_B - Nx]) / dy
+        
+    elif dift == 1:
+        
+        for i in range(0, nn):
+            
+            # Testing if element is in Bottom boundary - since it is a 
+            # boundary I have to apply first order upwind scheme
+            if np.isin(i, B_B) : diffy[i] = (v[i + Nx] - v[i]) / dy 
+                    
+            # Testing if element is in Bottom ring - Second order is applied 
+            # only if velocity is negative
+            elif np.isin(i, B_R):
+                
+                if v[i] >= 0 : diffy[i] = (v[i] - v[i - Nx]) / dy
+                
+                else:
+                    
+                    diffy[i] = (v[i + Nx] - v[i - Nx]) / (2 * dy) + q * \
+                    (v[i - Nx] - 3 * v[i] + 3 * v[i + Nx] - v[i + 2 * Nx]) \
+                    / (3 * dy)
+                    
+            # Testing if element is in top boundary - First order upwind since
+            # it is a boundary
+            elif np.isin(i, T_B) : diffy[i] = (v[i] - v[i - Nx]) / dy
+                    
+            # Testing if element is in top ring - Second order is applied only
+            # if velocity is positive
+            elif np.isin(i, T_R):
+                
+                if v[i] < 0 : diffy[i] = (v[i + Nx] - v[i]) / dy
+                    
+                else:
+                    
+                    diffy[i] = (v[i + Nx] - v[i - Nx]) / (2 * dy) + q * \
+                    (v[i - 2 * Nx] - 3 * v[i - Nx] + 3 * v[i] - v[i + Nx]) \
+                    / (3 * dy)
+                                
+            # Internal nodes - The choice is made according to the velocity and 
+            # the high order scheme can be applied
+            else:
+                
+                if v[i] >= 0:
+                    
+                    diffy[i] = (v[i + Nx] - v[i - Nx]) / (2 * dy) + q * \
+                    (v[i - 2 * Nx] - 3 * v[i - Nx] + 3 * v[i] - v[i + Nx]) \
+                    / (3 * dy)              
+                    
+                else:
+                    
+                    diffy[i] = (v[i + Nx] - v[i - Nx]) / (2 * dy) + q * \
+                    (v[i - Nx] - 3 * v[i] + 3 * v[i + Nx] - v[i + 2 * Nx]) \
+                    / (3 * dy)
     
     return diffy
 
