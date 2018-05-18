@@ -261,18 +261,29 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
     # Corrected three point upwind from Fletcher 1991    
     elif dift == 1:
         
-        for i in range(0, nn):
+        # Appending nodes to the boundary and ring arrays to count every possible 
+        # scenario
+        Nx = L_B[0]
+        L_B1 = np.append(0, L_B)
+        L_B1 = np.append(L_B1, L_B[-1] + Nx)
+        L_R1 = np.append(np.array((L_R[0] - 2 * Nx, L_R[0] - Nx)), L_R)
+        L_R1 = np.append(L_R1, np.array((L_R[-1] + Nx, L_R[-1] + 2 * Nx)))
+        R_B1 = np.append(R_B[0] - Nx, R_B)
+        R_B1 = np.append(R_B1, R_B[-1] + Nx)
+        R_R1 = np.append(np.array((R_R[0] - 2 * Nx, R_R[0] - Nx)), R_R)
+        R_R1 = np.append(R_R1, np.array((R_R[-1] + Nx, R_R[-1] + 2 * Nx)))
             
+        for i in range(0, nn):
+                        
             # Testing if element is in Left boundary - since it is a boundary I 
             # have to apply first order upwind scheme
-            if np.isin(i, L_B) or i == 0 or i == L_B[-1] + L_B[0]: 
+            if np.isin(i, L_B1): 
                 
                 diffx[i] = (u[i + 1] - u[i]) / dx 
                     
             # Testing if element is in Left ring - Second order is applied only 
             # if velocity is negative
-            elif np.isin(i, L_R) or i == L_R[-1] + L_B[0] or i == L_R[0] - \
-            L_B[0]:
+            elif np.isin(i, L_R1):
                 
                 if u[i] >= 0 : diffx[i] = (u[i] - u[i - 1]) / dx
                 
@@ -283,14 +294,13 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
                     
             # Testing if element is in right boundary - First order upwind since
             # it is a boundary
-            elif np.isin(i, R_B) or i == nn - 1 or i == R_B[0] - L_B[0]: 
+            elif np.isin(i, R_B1): 
                 
                 diffx[i] = (u[i] - u[i - 1]) / dx
                     
             # Testing if element is in right ring - Second order is applied only
             # if velocity is positive
-            elif np.isin(i, R_R) or i == R_R[-1] + L_B[0] or i == R_R[0] - \
-            L_B[0]:
+            elif np.isin(i, R_R1):
                 
                 if u[i] < 0 : diffx[i] = (u[i + 1] - u[i]) / dx
                     
@@ -314,6 +324,7 @@ def diffx(u, dx, L_B, L_R, R_B, R_R, dift):
                          - 3 * u[i] + 3 * u[i + 1] - u[i + 2]) / (3 * dx)
     
     return diffx
+
 # ==============================================================================
 # Differentiating a vector in the y direction - not imposing BC yet. Works for
 # u and v independently
@@ -350,6 +361,13 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
         
     elif dift == 1:
         
+        # Appending nodes to the boundary and ring arrays to count every possible 
+        # scenario
+        B_R1 = np.append(B_R[0] - 1, B_R)
+        B_R1 = np.append(B_R1, B_R[-1] + 1)
+        T_R1 = np.append(T_R[0] - 1, T_R)
+        T_R1 = np.append(T_R1, T_R[-1] + 1)   
+        
         for i in range(0, nn):
             
             # Testing if element is in Bottom boundary - since it is a 
@@ -358,7 +376,7 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
                     
             # Testing if element is in Bottom ring - Second order is applied 
             # only if velocity is negative
-            elif np.isin(i, B_R):
+            elif np.isin(i, B_R1):
                 
                 if v[i] >= 0 : diffy[i] = (v[i] - v[i - Nx]) / dy
                 
@@ -374,7 +392,7 @@ def diffy(v, dy, B_B, B_R, T_B, T_R, dift):
                     
             # Testing if element is in top ring - Second order is applied only
             # if velocity is positive
-            elif np.isin(i, T_R):
+            elif np.isin(i, T_R1):
                 
                 if v[i] < 0 : diffy[i] = (v[i + Nx] - v[i]) / dy
                     

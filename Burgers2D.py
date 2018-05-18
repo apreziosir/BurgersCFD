@@ -45,7 +45,7 @@ nu_x = 1e-2
 nu_y = 1e-2
 
 # Which velocity is going to be zero (for the canonical case)
-zerov = 'u'
+zerov = 'v'
 
 # ==============================================================================
 # DECLARATION OF NUMERICAL PARAMETERS
@@ -67,12 +67,12 @@ dift = 1
 Der2 = 1
 
 # Maximum CFL values for each dimension
-CFL_x = 1.0
-CFL_y = 1.0
+CFL_x = 0.75
+CFL_y = 0.75
 
 # Number of nodes in each direction
-Nx = 10                                         # Nodes in x direction
-Ny = 10                                         # Nodes in y direction
+Nx = 91                                         # Nodes in x direction
+Ny = 91                                         # Nodes in y direction
 nn = Nx * Ny                                    # Number of nodes (total)
 
 # Boundary conditions vectors BC0_u = type of BC. BC1_u = value of the BC. 
