@@ -52,8 +52,7 @@ zerov = 'v'
 # ==============================================================================
 
 # Treatment of the non linear term. 0 = primitive variables, 1 = divergence form
-# 2 = skew symmetric form
-nlt = 0
+nlt = 1
 
 # Type of first derivative that is going to be applied. 0 = First order upwind,
 # 1 = Corrected upwind from Fletcher et al (1991), 2 = high order centered di-
@@ -284,23 +283,13 @@ for t in range(1, nT + 1):
         vgt = v0 ** 2
         
         ug = u0 - dT * (0.5 * AUX.diffx(ugt, dx, L_B, L_R, R_B, R_R, dift) + \
-                        AUX.diffy(np.multiply(v0, u0), dy, B_B, B_R, T_B, T_R, \
-                        dift))
+                        np.multiply(v0, AUX.diffy( u0, dy, B_B, B_R, T_B, T_R, \
+                        dift)))
         
         vg = v0 - dT * (0.5 * AUX.diffy(vgt, dy, B_B, B_R, T_B, T_R, dift) + \
-                        AUX.diffx(np.multiply(u0, v0), dx, L_B, L_R, R_B, R_R, \
-                        dift))
+                        np.multiply(u0, AUX.diffx(v0, dx, L_B, L_R, R_B, R_R, \
+                        dift)))
                      
-    # Skew symmetric form for the non linear term. The term with two different 
-    # vectors is treated with primitive variables
-    elif nlt == 2:
-        
-        ugt = np.multiply(u0, u0)
-        vgt = np.multiply(v0, v0)
-        
-        print('Not programmed yet')
-        break
-    
     # Error message for wrong choice of non linear term treatment    
     else:
         
